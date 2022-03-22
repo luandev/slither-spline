@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Kobra } from './Kobra';
+import { Kobra } from './Kobra_TEST';
 
 const sceneConfig: Phaser.Types.Scenes.SettingsConfig = {
   active: false,
