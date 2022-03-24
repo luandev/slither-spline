@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 export default class SlitherSpline extends Phaser.Scene {
   graphics!: Phaser.GameObjects.Graphics;
 
-  points: Array<[number, number]> = [];
+  points: Array<Phaser.Math.Vector2> = [];
 
   size = 30;
 
@@ -74,22 +74,30 @@ export default class SlitherSpline extends Phaser.Scene {
 
     const head = this.points.length
       ? this.points[this.points.length - 1]
-      : [0, 0];
+      : new Phaser.Math.Vector2(0, 0);
 
     const angle = Phaser.Math.Angle.Between(
-      head[0],
-      head[1],
+      head.x,
+      head.y,
       pointer.x,
       pointer.y,
     );
 
-    const newHead = Phaser.Math.RotateTo(this.reticle, head[0], head[1], angle, 80);
+    // Navigate
+    const newHead = Phaser.Math.RotateTo(this.reticle, head.x, head.y, angle, 50);
     const isHeadInsideBoundary = Phaser.Geom.Circle.ContainsPoint(mouseBoundary, newHead);
 
     if (!isHeadInsideBoundary) {
-      this.points.push([newHead.x, newHead.y]);
-      if (this.points.length > this.size) {
-        this.points.shift();
+      const headCollider = new Phaser.Geom.Circle(newHead.x, newHead.y, 40);
+      // eslint-disable-next-line max-len
+      const collided = this.points.some((point) => Phaser.Geom.Circle.ContainsPoint(headCollider, point));
+      if (collided) {
+        this.points = [new Phaser.Math.Vector2(0, 0)];
+      } else {
+        this.points.push(new Phaser.Math.Vector2(newHead.x, newHead.y));
+        if (this.points.length > this.size) {
+          this.points.shift();
+        }
       }
     }
 
@@ -98,7 +106,7 @@ export default class SlitherSpline extends Phaser.Scene {
     if (this.points.length) {
       const curve = new Phaser.Curves.Spline(this.points);
 
-      this.points.forEach((point) => this.graphics.fillCircle(point[0], point[1], 5));
+      this.points.forEach((point) => this.graphics.fillCircle(point.x, point.y, 5));
       curve.draw(this.graphics, 1024);
     }
   }
