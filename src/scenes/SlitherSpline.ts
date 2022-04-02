@@ -7,7 +7,7 @@ export default class SlitherSpline extends Phaser.Scene {
 
   points: Array<Phaser.Math.Vector2> = [];
 
-  size = 30;
+  size = 3;
 
   cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 
@@ -29,7 +29,7 @@ export default class SlitherSpline extends Phaser.Scene {
 
   collisionCounter: number = 0;
 
-  gameFieldSize: number = 100;
+  gameFieldSize: number = 60;
 
   constructor() {
     super({
@@ -57,12 +57,11 @@ export default class SlitherSpline extends Phaser.Scene {
     for (let width = 0; width < this.gameFieldSize; width++) {
       for (let height = 0; height < this.gameFieldSize; height++) {
         const noise = this.noise.perlin2(width / 5, height / 5);
-        console.log(noise);
-        if (noise > 0.1) {
+        if (noise > 0.3) {
           const food = this.scene.scene.add.circle(
             width * tileWidth,
             height * tileHeight,
-            noise * 10,
+            (noise * tileWidth),
           );
           food.setFillStyle(161619, 1);
           this.food.push(food);
@@ -74,15 +73,7 @@ export default class SlitherSpline extends Phaser.Scene {
   }
 
   update() {
-    this.graphics.clear();
-    this.graphics.lineStyle(1, 0xffffff, 1);
-    this.graphics.fillStyle(0x00ff00, 1);
-
     const pointer = this.input.activePointer;
-    this.reticle.x = pointer.x;
-    this.reticle.y = pointer.y;
-    this.graphics.fillCircle(this.reticle.x, this.reticle.y, 5);
-
     const mouseBoundary = new Phaser.Geom.Circle(pointer.x, pointer.y, 80);
 
     const head = this.points.length
@@ -103,26 +94,49 @@ export default class SlitherSpline extends Phaser.Scene {
     if (!isHeadInsideBoundary) {
       const headCollider = new Phaser.Geom.Circle(newHead.x, newHead.y, 40);
 
-      const collidedSelf = this.points.some((point) => Phaser.Geom.Circle.ContainsPoint(headCollider, point));
-      // const collidedFood = this.food.some((point) => Phaser.Geom.Circle.ContainsPoint(headCollider, point));
+      const collidedSelf = this.points.some(
+        (point) => Phaser.Geom.Circle.ContainsPoint(headCollider, point),
+      );
+      const collidedFood = this.food.filter(
+        (food) => Phaser.Geom.Circle.ContainsPoint(headCollider, food),
+      );
 
       if (collidedSelf) {
         this.points = [];
+        this.size = 3;
         this.collisionCounter++;
       } else {
+        this.graphics.clear();
+        this.graphics.lineStyle(1, 0xffffff, 1);
+        this.graphics.fillStyle(0x00ff00, 1);
+
+        this.reticle.x = pointer.x;
+        this.reticle.y = pointer.y;
+        this.graphics.fillCircle(this.reticle.x, this.reticle.y, 5);
+
         this.points.push(new Phaser.Math.Vector2(newHead.x, newHead.y));
         if (this.points.length > this.size) {
           this.points.shift();
         }
-      }
-    }
 
-    this.player.x = newHead.x;
-    this.player.y = newHead.y;
-    if (this.points.length) {
-      const curve = new Phaser.Curves.Spline(this.points);
-      this.points.forEach((point) => this.graphics.fillCircle(point.x, point.y, 5));
-      curve.draw(this.graphics, 1024);
+        if (collidedFood?.length > 0) {
+          this.size += (collidedFood.length / 10);
+          collidedFood.forEach(
+            (food) => {
+              food.removedFromScene();
+              food.destroy();
+            },
+          );
+        }
+
+        this.player.x = newHead.x;
+        this.player.y = newHead.y;
+        if (this.points.length) {
+          const curve = new Phaser.Curves.Spline(this.points);
+          this.points.forEach((point) => this.graphics.fillCircle(point.x, point.y, 5));
+          curve.draw(this.graphics, 1024);
+        }
+      }
     }
   }
 }
