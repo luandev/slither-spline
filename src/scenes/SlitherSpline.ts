@@ -7,17 +7,19 @@ export default class SlitherSpline extends Phaser.Scene {
 
   points: Array<Phaser.Math.Vector2> = [];
 
+  head!:Phaser.Math.Vector2;
+
   size = 3;
 
-  cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  // cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 
   player!: Phaser.Types.Physics.Arcade.ImageWithDynamicBody;
 
   reticle!: Phaser.Types.Physics.Arcade.ImageWithDynamicBody;
 
-  moveCam: boolean = true;
+  // moveCam: boolean = true;
 
-  text!: Phaser.GameObjects.Text;
+  // text!: Phaser.GameObjects.Text;
 
   noise = new Perlin(1000);
 
@@ -54,6 +56,9 @@ export default class SlitherSpline extends Phaser.Scene {
     const tileWidth = this.gameWidth / this.gameFieldSize;
     const tileHeight = this.gameHeight / this.gameFieldSize;
 
+    // Perlin noise "food" generation
+    // https://adrianb.io/2014/08/09/perlinnoise.html
+    // https://rtouti.github.io/graphics/perlin-noise-algorithm
     for (let width = 0; width < this.gameFieldSize; width++) {
       for (let height = 0; height < this.gameFieldSize; height++) {
         const noise = this.noise.perlin2(width / 5, height / 5);
@@ -69,17 +74,21 @@ export default class SlitherSpline extends Phaser.Scene {
       }
     }
 
-    // this.cameras.main.setZoom(1);
+    // Camera follow system (WIP)
+    this.cameras.main.startFollow(this.player);
+    this.cameras.main.setZoom(1.3);
   }
 
   update() {
     const pointer = this.input.activePointer;
     const mouseBoundary = new Phaser.Geom.Circle(pointer.x, pointer.y, 80);
 
+    // spline "head"
     const head = this.points.length
       ? this.points[this.points.length - 1]
       : new Phaser.Math.Vector2(this.cameras.main.centerX, this.cameras.main.centerY);
 
+    // heading angle
     const angle = Phaser.Math.Angle.Between(
       head.x,
       head.y,
@@ -91,12 +100,16 @@ export default class SlitherSpline extends Phaser.Scene {
     const newHead = Phaser.Math.RotateTo(this.player, head.x, head.y, angle, 50);
     const isHeadInsideBoundary = Phaser.Geom.Circle.ContainsPoint(mouseBoundary, newHead);
 
+    // if pointer is far enough from head
     if (!isHeadInsideBoundary) {
       const headCollider = new Phaser.Geom.Circle(newHead.x, newHead.y, 40);
 
+      // detect self collision
       const collidedSelf = this.points.some(
         (point) => Phaser.Geom.Circle.ContainsPoint(headCollider, point),
       );
+
+      // detect all food collision
       const collidedFood = this.food.filter(
         (food) => Phaser.Geom.Circle.ContainsPoint(headCollider, food),
       );
@@ -106,6 +119,15 @@ export default class SlitherSpline extends Phaser.Scene {
         this.size = 3;
         this.collisionCounter++;
       } else {
+        if (collidedFood?.length > 0) {
+          this.size += (collidedFood.length / 10);
+          collidedFood.forEach(
+            (food) => {
+              food.removedFromScene();
+              food.destroy();
+            },
+          );
+        }
         this.graphics.clear();
         this.graphics.lineStyle(1, 0xffffff, 1);
         this.graphics.fillStyle(0x00ff00, 1);
@@ -119,18 +141,9 @@ export default class SlitherSpline extends Phaser.Scene {
           this.points.shift();
         }
 
-        if (collidedFood?.length > 0) {
-          this.size += (collidedFood.length / 10);
-          collidedFood.forEach(
-            (food) => {
-              food.removedFromScene();
-              food.destroy();
-            },
-          );
-        }
-
         this.player.x = newHead.x;
         this.player.y = newHead.y;
+
         if (this.points.length) {
           const curve = new Phaser.Curves.Spline(this.points);
           this.points.forEach((point) => this.graphics.fillCircle(point.x, point.y, 5));
