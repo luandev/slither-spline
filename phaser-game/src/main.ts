@@ -1,11 +1,25 @@
 import * as Phaser from 'phaser';
 import SlitherSpline from './scenes/SlitherSpline';
+import MatterScene from './scenes/MatterPOC';
+
+const isMatterPhysics = true;
+
+const physics = isMatterPhysics ? {
+  default: 'matter',
+  matter: {
+    debug: true,
+    gravity: {
+      y: 0.3,
+    },
+  },
+}
+  : {
+    default: 'arcade',
+  };
 
 const config = {
   type: Phaser.AUTO,
-  physics: {
-    default: 'arcade',
-  },
+  physics,
   scale: {
     mode: Phaser.Scale.FIT,
     parent: 'phaser-example',
@@ -15,7 +29,7 @@ const config = {
   },
   backgroundColor: '#2d2d2d',
   parent: 'phaser-example',
-  scene: [SlitherSpline],
+  scene: isMatterPhysics ? [MatterScene] : [SlitherSpline],
 } as Phaser.Types.Core.GameConfig;
 
 const game = new Phaser.Game(config);
