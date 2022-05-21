@@ -1,7 +1,7 @@
-import { html, LitElement } from 'lit'
+import { html, LitElement, css } from 'lit'
 import { customElement, property, query, queryAsync } from 'lit/decorators.js'
 import 'bootstrap/dist/css/bootstrap.css';
-import game from './game';
+import game from './pages/constraints';
 /**
  * An example element.
  *
@@ -15,7 +15,7 @@ export class SlitherGame extends LitElement {
   }
 
   @queryAsync('#canvas')
-  canvas!: Promise<HTMLDivElement>;
+  element!: Promise<HTMLDivElement>;
 
   /**
    * The name to say "Hello" to.
@@ -31,7 +31,7 @@ export class SlitherGame extends LitElement {
 
   connectedCallback (): void {
     super.connectedCallback();
-    (async () => game(await this.canvas))();
+    (async () => game(await this.element))();
   }
 
   render() {
@@ -61,15 +61,13 @@ export class SlitherGame extends LitElement {
   </div>
   <div style="margin: 10px" class="card">
       <div class="card-body">
-        <div id="canvas">
-        </div>
+        <div id="canvas" style="width: 1000px; height: 1000px; backgroundColor: red"></div>
       </div>
   </div>
     `
   }
 
   private _onClick() {
-    runEngine();
   }
 
   foo(): string {
